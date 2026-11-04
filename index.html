@@ -1,0 +1,632 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Feeless Portfolio — a free crypto trading simulator</title>
+<meta name="description" content="A free, single-file portfolio simulator with entirely fictional, randomly generated coin prices. Trade a 30-day season, beat the market, no real money or real market data involved." />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<style>
+  :root {
+    --bg:#0b1220; --card:#121c30; --ink:#e7eefc; --muted:#93a3c0; --line:#24334f;
+    --accent:#4ea1ff; --accent-ink:#04101f; --field:#0e1729; --good:#4ade80; --bad:#ff6b6b; --gold:#fbbf24;
+    --xno:#26d6c7; --insight:#38bdf8;
+  }
+  * { box-sizing:border-box; }
+  html, body { margin:0; padding:0; }
+  body { background:var(--bg); color:var(--ink); font-family:"Sora",system-ui,sans-serif; min-height:100vh; padding-bottom:40px; }
+  a { color:inherit; }
+  button { font-family:inherit; }
+  .wrap { max-width:620px; margin:0 auto; padding:0 16px; }
+  header.hero { padding:30px 0 16px; text-align:center; border-bottom:1px solid var(--line); background:radial-gradient(60% 100% at 50% 0%, rgba(78,161,255,0.14), transparent); }
+  header.hero h1 { margin:0 0 6px; font-size:clamp(1.6rem, 5vw, 2.2rem); font-weight:800; letter-spacing:-0.02em; }
+  header.hero .accentword { color:var(--accent); }
+  header.hero p { margin:0 auto; max-width:480px; color:var(--muted); font-size:0.9rem; line-height:1.5; }
+  .disclaimer { max-width:480px; margin:10px auto 0; font-size:0.72rem; color:var(--muted); background:var(--field); border:1px solid var(--line); border-radius:10px; padding:8px 12px; }
+
+  .topbar { display:flex; flex-wrap:wrap; gap:8px; justify-content:center; margin-top:16px; }
+  .pill { font:700 0.82rem "JetBrains Mono",monospace; background:var(--field); border:1px solid var(--line); border-radius:999px; padding:7px 14px; color:var(--insight); }
+  .btn2 { font:600 0.82rem "Sora",sans-serif; padding:8px 14px; border-radius:999px; border:1px solid var(--line); background:var(--field); color:var(--ink); cursor:pointer; text-decoration:none; }
+  .btn2:hover { border-color:var(--accent); }
+  .btn2.primary { border-color:var(--gold); color:var(--gold); }
+
+  .modetabs { display:flex; gap:8px; justify-content:center; margin:22px 0 0; }
+  .modetab { font:700 0.82rem "Sora",sans-serif; padding:9px 16px; border-radius:10px 10px 0 0; border:1px solid var(--line); border-bottom:none; background:var(--field); color:var(--muted); cursor:pointer; }
+  .modetab.active { background:var(--card); color:var(--ink); }
+  .modepanel { display:none; background:var(--card); border:1px solid var(--line); border-radius:0 14px 14px 14px; padding:18px; margin-top:-1px; }
+  .modepanel.active { display:block; }
+
+  .hud { display:flex; flex-wrap:wrap; gap:10px; justify-content:space-between; font:700 0.76rem "JetBrains Mono",monospace; color:var(--muted); margin-bottom:10px; }
+  .hud b { color:var(--ink); }
+  .hud .up { color:var(--good); } .hud .down { color:var(--bad); }
+
+  #chart { width:100%; height:120px; background:var(--field); border:1px solid var(--line); border-radius:10px; display:block; }
+
+  .asset-row { display:flex; flex-wrap:wrap; align-items:center; gap:8px; background:var(--field); border:1px solid var(--line); border-radius:12px; padding:10px 12px; margin-top:10px; }
+  .asset-row .main { flex:1; min-width:140px; }
+  .asset-row .tk { font-weight:800; font-size:0.9rem; }
+  .asset-row .nm { color:var(--muted); font-size:0.7rem; }
+  .asset-row .price { font:700 0.86rem "JetBrains Mono",monospace; text-align:right; }
+  .asset-row .chg { font:600 0.72rem "JetBrains Mono",monospace; text-align:right; }
+  .asset-row .held { width:100%; color:var(--muted); font-size:0.72rem; }
+  .asset-row .whale { color:var(--gold); font-size:0.8rem; }
+  .trade-btns { display:flex; gap:6px; width:100%; flex-wrap:wrap; }
+  .trade-btns button { flex:1; min-width:70px; padding:7px 4px; border-radius:8px; border:1px solid var(--line); background:#0b1424; color:var(--ink); font:700 0.68rem "JetBrains Mono",monospace; cursor:pointer; }
+  .trade-btns button.buy { border-color:var(--good); color:var(--good); }
+  .trade-btns button.sell { border-color:var(--bad); color:var(--bad); }
+  .trade-btns button:disabled { opacity:0.3; cursor:default; }
+
+  .actions { display:flex; gap:8px; margin-top:14px; flex-wrap:wrap; }
+  .actions button { flex:1; min-width:130px; padding:12px; border-radius:10px; border:1px solid var(--accent); background:transparent; color:var(--accent); font:800 0.86rem "Sora",sans-serif; cursor:pointer; }
+  .actions button.rewind { border-color:var(--gold); color:var(--gold); }
+  .actions button:disabled { opacity:0.35; cursor:default; }
+
+  .log { background:var(--field); border:1px solid var(--line); border-radius:10px; padding:8px 10px; margin-top:10px; font-size:0.74rem; color:var(--muted); max-height:62px; overflow-y:auto; line-height:1.5; }
+
+  .research-item { display:flex; align-items:center; gap:10px; background:var(--field); border:1px solid var(--line); border-radius:12px; padding:12px; margin-bottom:8px; }
+  .research-item .info { flex:1; }
+  .research-item .name { font-weight:700; font-size:0.9rem; }
+  .research-item .desc { color:var(--muted); font-size:0.76rem; margin-top:2px; }
+  .research-item .lvl { font:700 0.74rem "JetBrains Mono",monospace; color:var(--insight); }
+  .research-item button { padding:9px 12px; border-radius:9px; border:1px solid var(--insight); background:transparent; color:var(--insight); font:700 0.78rem "Sora",sans-serif; cursor:pointer; white-space:nowrap; }
+  .research-item button:disabled { opacity:0.35; cursor:default; }
+
+  details.rules { width:100%; background:var(--card); border:1px solid var(--line); border-radius:14px; padding:4px 16px; margin-top:22px; }
+  details.rules summary { cursor:pointer; padding:12px 0; font-weight:700; font-size:0.9rem; }
+  details.rules p { color:var(--muted); font-size:0.82rem; line-height:1.6; }
+  details.rules b { color:var(--ink); }
+
+  .card2 { margin:28px auto 0; max-width:620px; background:var(--card); border:1px solid var(--line); border-radius:16px; padding:20px; }
+  .card2 h2 { margin:0 0 4px; font-size:1.1rem; text-align:center; }
+  .card2 > p.sub { text-align:center; color:var(--muted); font-size:0.85rem; margin:0 0 16px; }
+  .amounts { display:flex; gap:8px; justify-content:center; flex-wrap:wrap; margin-bottom:14px; }
+  .amounts button { padding:8px 14px; border-radius:999px; border:1px solid var(--line); background:var(--field); color:var(--ink); font:600 0.82rem "Sora",sans-serif; cursor:pointer; }
+  .amounts button[aria-pressed="true"] { border-color:var(--xno); color:var(--xno); }
+  .tipgrid { display:flex; gap:18px; flex-wrap:wrap; align-items:center; justify-content:center; }
+  .qr { width:148px; height:148px; background:#fff; border-radius:10px; padding:8px; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+  .tipright { flex:1; min-width:220px; display:flex; flex-direction:column; gap:8px; }
+  .addr { font:600 0.7rem "JetBrains Mono",monospace; color:var(--muted); word-break:break-all; background:var(--field); border:1px solid var(--line); border-radius:10px; padding:8px 10px; }
+  .tiprow { display:flex; gap:8px; flex-wrap:wrap; }
+  .tiprow button, .tiprow a { padding:9px 14px; border-radius:9px; border:1px solid var(--line); background:var(--field); color:var(--ink); font:600 0.8rem "Sora",sans-serif; cursor:pointer; text-decoration:none; }
+  .status { min-height:18px; font-size:0.78rem; color:var(--good); }
+  .hint { color:var(--muted); font-size:0.76rem; margin:0; line-height:1.4; }
+
+  .end-overlay { position:fixed; inset:0; background:rgba(5,8,15,0.88); display:flex; align-items:center; justify-content:center; z-index:30; padding:16px; }
+  .end-overlay[hidden] { display:none; }
+  .end-card { background:var(--card); border:1px solid var(--line); border-radius:16px; padding:26px 22px; max-width:360px; text-align:center; }
+  .end-card h2 { margin:0 0 8px; }
+  .end-card p { color:var(--muted); font-size:0.88rem; line-height:1.5; }
+  .end-card .big { font:800 1.3rem "JetBrains Mono",monospace; margin:8px 0; }
+  .end-card .ins { color:var(--insight); }
+
+  footer { text-align:center; color:var(--muted); font-size:0.78rem; margin-top:40px; padding:0 16px; }
+  footer a { color:var(--gold); text-decoration:none; }
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="wrap">
+    <h1>Feeless <span class="accentword">Portfolio</span></h1>
+    <p>Trade a 30-day season against entirely made-up markets. Grow your stack, dodge the rug pulls, and see what your instincts are worth.</p>
+    <div class="disclaimer">All prices here are randomly generated for this game — not real market data, not real coins, and nothing on this page is financial advice.</div>
+    <div class="topbar">
+      <div class="pill">🔭 <span id="insight-top">0</span> insight</div>
+      <a class="btn2" href="#tip">Get more insight</a>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+  <nav class="modetabs" role="tablist">
+    <button class="modetab active" data-mode="practice" type="button">📊 Practice</button>
+    <button class="modetab" data-mode="daily" type="button">📅 Daily Challenge</button>
+    <button class="modetab" data-mode="research" type="button">🔬 Research</button>
+  </nav>
+
+  <section class="modepanel active" id="panel-game">
+    <div id="pregame">
+      <p id="pregame-text" class="hint">Practice: a fresh random 30-day market every time, for honing your strategy and earning insight.</p>
+      <button id="start-run" style="width:100%;padding:12px;border-radius:10px;border:1px solid var(--good);background:transparent;color:var(--good);font:800 0.95rem 'Sora',sans-serif;cursor:pointer;">Start season</button>
+      <div id="daily-status" class="hint" style="text-align:center;margin-top:8px;"></div>
+    </div>
+    <div id="ingame" hidden>
+      <div class="hud">
+        <div>Day <b id="hud-day">1/30</b></div>
+        <div>Cash <b id="hud-cash">0</b></div>
+        <div>Portfolio <b id="hud-total">0</b></div>
+        <div>Return <b id="hud-return">0%</b></div>
+      </div>
+      <canvas id="chart" width="560" height="120"></canvas>
+      <div id="asset-list"></div>
+      <div class="actions">
+        <button id="advance-btn">▶ Advance day</button>
+        <button class="rewind" id="rewind-btn">↺ Rewind (<span id="rewind-count">0</span>)</button>
+      </div>
+      <div class="log" id="log"></div>
+    </div>
+  </section>
+
+  <section class="modepanel" id="panel-research">
+    <p class="hint">Insight earned from past seasons buys permanent research here — it applies to every future season, Practice and Daily alike.</p>
+    <div id="research-list"></div>
+  </section>
+
+  <details class="rules">
+    <summary>❓ How to play</summary>
+    <p>Each season runs 30 simulated trading days on six fictional coins, each with its own volatility — <b>STBL</b>
+      barely moves, <b>RUG</b> is a rollercoaster that trends down more often than not. Buy low with the Buy buttons
+      (a share of your cash), sell high with the Sell buttons (a share of your holdings), then press <b>Advance
+      day</b> to move the market forward — prices drift and wobble randomly, and some days bring a news event that
+      swings one coin harder in one direction. At the end of day 30 your season scores on total portfolio value
+      (cash plus holdings), converting your result into <b>insight</b>, spent in the <b>Research</b> tab on
+      permanent upgrades: more starting cash, calmer markets, advance warning of event days, and rewinds to undo a
+      bad day. <b>Daily Challenge</b> gives everyone the same 30-day market for the day, once per day, with a streak
+      for playing. Every price path is generated right here in your browser from a seed — nothing is pulled from
+      real markets.</p>
+  </details>
+
+  <aside class="card2" id="tip" aria-label="Tip to top up insight">
+    <h2>Get more insight</h2>
+    <p class="sub">Insight comes from playing seasons — tipping is just an optional way to speed that up, or say thanks.</p>
+    <div class="amounts" role="group" aria-label="Amount">
+      <button type="button" data-amt="0.01" aria-pressed="true">0.01 XNO</button>
+      <button type="button" data-amt="0.05" aria-pressed="false">0.05 XNO</button>
+      <button type="button" data-amt="0.1" aria-pressed="false">0.1 XNO</button>
+      <button type="button" data-amt="" aria-pressed="false">Any amount</button>
+    </div>
+    <div class="tipgrid">
+      <div class="qr" id="qr"></div>
+      <div class="tipright">
+        <a class="tiprow btn" id="openw" href="#" style="justify-content:center;">Open in wallet</a>
+        <div class="addr" id="addr"></div>
+        <div class="tiprow">
+          <button type="button" id="copy">Copy address</button>
+          <button type="button" id="check">I've sent it, check</button>
+        </div>
+        <div class="status" id="tstatus" role="status"></div>
+        <p class="hint" id="thint"></p>
+      </div>
+    </div>
+  </aside>
+</div>
+
+<div class="end-overlay" id="end-overlay" hidden>
+  <div class="end-card">
+    <h2 id="end-title">Season over</h2>
+    <p id="end-text"></p>
+    <div class="big" id="end-value">0</div>
+    <div class="big ins" id="end-insight">+0 insight</div>
+    <button class="btn2 primary" id="end-close" style="width:100%;padding:11px;">Continue</button>
+  </div>
+</div>
+
+<footer>
+  Feeless Portfolio &middot; part of the Feeless Arcade &middot; a simulation only — everything here lives in your browser
+</footer>
+
+<script>
+(function () {
+  function $(id) { return document.getElementById(id); }
+  function lsGet(k, d) { try { const v = localStorage.getItem(k); return v === null ? d : v; } catch (e) { return d; } }
+  function lsSet(k, v) { try { localStorage.setItem(k, String(v)); } catch (e) {} }
+  function jget(k, d) { try { const v = JSON.parse(lsGet(k, "")); return v === null || v === undefined ? d : v; } catch (e) { return d; } }
+  function dateKey(d) { return (d || new Date()).toISOString().slice(0, 10); }
+  function xmur3(str) {
+    let h = 1779033703 ^ str.length;
+    for (let i = 0; i < str.length; i++) { h = Math.imul(h ^ str.charCodeAt(i), 3432918353); h = (h << 13) | (h >>> 19); }
+    return function () { h = Math.imul(h ^ (h >>> 16), 2246822519); h = Math.imul(h ^ (h >>> 13), 3266489917); h ^= h >>> 16; return h >>> 0; };
+  }
+  function makeRng(seed) {
+    return {
+      state: seed >>> 0,
+      next: function () {
+        this.state = (this.state + 0x6D2B79F5) | 0;
+        let t = this.state;
+        t = Math.imul(t ^ (t >>> 15), 1 | t);
+        t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+        return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+      }
+    };
+  }
+  function randNormal(rng) { let u = 0; for (let i = 0; i < 3; i++) u += rng.next(); return (u / 3 - 0.5) * 2; }
+  function clamp(n, a, b) { return Math.max(a, Math.min(b, n)); }
+  function fmtMoney(n) { return "$" + n.toLocaleString(undefined, { maximumFractionDigits: n < 100 ? 2 : 0 }); }
+
+  const NANO_ADDRESS = "nano_3a7e3irpbpxbh1n7dk9u3cm9tnd97q1unjxn67ni9gijoxfmzguitx1xgc9u";
+  const RPCS = ["https://rpc.nano.to", "https://node.somenano.com/proxy"];
+  const INSIGHT_PER_XNO = 300;
+
+  const SEASON_LENGTH = 30;
+  const EVENT_CHANCE = 0.18;
+  const ASSETS = [
+    { id: "stbl", name: "Stability Coin", tk: "STBL", start: 10, drift: 0.001, vol: 0.015 },
+    { id: "lgdr", name: "Ledger Token", tk: "LGDR", start: 25, drift: 0.004, vol: 0.035 },
+    { id: "fuse", name: "Fusion Chain", tk: "FUSE", start: 15, drift: 0.002, vol: 0.05 },
+    { id: "volt", name: "Voltaic", tk: "VOLT", start: 40, drift: 0.010, vol: 0.07 },
+    { id: "ghst", name: "Ghost Chain", tk: "GHST", start: 60, drift: -0.002, vol: 0.06 },
+    { id: "rug", name: "Rugged Protocol", tk: "RUG", start: 5, drift: -0.012, vol: 0.09 }
+  ];
+  const EVENTS = [
+    { label: "partnership rumor", mult: [1.08, 1.25], tone: "good" },
+    { label: "exchange listing", mult: [1.05, 1.18], tone: "good" },
+    { label: "community airdrop hype", mult: [1.06, 1.15], tone: "good" },
+    { label: "smart-contract bug found", mult: [0.80, 0.93], tone: "bad" },
+    { label: "dev wallet moves coins", mult: [0.75, 0.90], tone: "bad" },
+    { label: "regulatory concern raised", mult: [0.85, 0.95], tone: "bad" }
+  ];
+
+  const RESEARCH = [
+    { id: "capital", name: "Starting Capital", desc: "+$1,000 starting cash per level", max: 5, baseCost: 15 },
+    { id: "steady", name: "Steady Hands", desc: "-8% daily volatility per level", max: 5, baseCost: 12 },
+    { id: "whale", name: "Whale Alert", desc: "See which coin tomorrow's news hits, before you trade", max: 1, baseCost: 40 },
+    { id: "rewind", name: "Second Chances", desc: "+1 rewind per season per level", max: 3, baseCost: 20 }
+  ];
+  function researchLevel(id) { return parseInt(lsGet("fp-research-" + id, "0"), 10) || 0; }
+  function researchCost(def, level) { return Math.round(def.baseCost * Math.pow(1.6, level)); }
+  let insight = parseInt(lsGet("fp-insight", ""), 10); if (isNaN(insight)) { insight = 0; lsSet("fp-insight", 0); }
+  function renderInsightTop() { $("insight-top").textContent = insight.toLocaleString(); }
+  function addInsight(n) { insight = Math.max(0, Math.round(insight + n)); lsSet("fp-insight", insight); renderInsightTop(); renderResearch(); }
+
+  function startCashBase() { return 10000 + researchLevel("capital") * 1000; }
+  function steadyFactor() { return 1 - researchLevel("steady") * 0.08; }
+  function baseRewinds() { return researchLevel("rewind"); }
+
+  function renderResearch() {
+    const box = $("research-list"); box.innerHTML = "";
+    RESEARCH.forEach(function (r) {
+      const lvl = researchLevel(r.id), maxed = lvl >= r.max;
+      const cost = maxed ? 0 : researchCost(r, lvl);
+      const row = document.createElement("div"); row.className = "research-item";
+      row.innerHTML =
+        '<div class="info"><div class="name">' + r.name + '</div><div class="desc">' + r.desc + '</div>' +
+        '<div class="lvl">Level ' + lvl + ' / ' + r.max + '</div></div>' +
+        '<button' + (maxed || insight < cost ? ' disabled' : '') + '>' + (maxed ? "Maxed" : cost.toLocaleString() + " 🔭") + '</button>';
+      row.querySelector("button").addEventListener("click", function () {
+        const cur = researchLevel(r.id); if (cur >= r.max) return;
+        const c = researchCost(r, cur); if (insight < c) return;
+        addInsight(-c); lsSet("fp-research-" + r.id, cur + 1); renderResearch();
+      });
+      box.appendChild(row);
+    });
+  }
+
+  // ---------- run state ----------
+  let run = null;
+
+  function rollEvent(rng) {
+    if (rng.next() < EVENT_CHANCE) {
+      const asset = ASSETS[Math.floor(rng.next() * ASSETS.length)];
+      const ev = EVENTS[Math.floor(rng.next() * EVENTS.length)];
+      const mag = ev.mult[0] + rng.next() * (ev.mult[1] - ev.mult[0]);
+      return { active: true, assetId: asset.id, ev: ev, mag: mag };
+    }
+    return { active: false };
+  }
+
+  function totalValue(st) {
+    let v = st.cash;
+    ASSETS.forEach(function (a) { v += st.holdings[a.id] * st.prices[a.id]; });
+    return v;
+  }
+
+  function addLog(msg) { run.log.unshift(msg); if (run.log.length > 20) run.log.length = 20; renderLog(); }
+  function renderLog() { $("log").innerHTML = run.log.slice(0, 8).map(function (m) { return "<div>" + m + "</div>"; }).join(""); }
+
+  function startRun(mode) {
+    const seed = mode === "daily" ? xmur3("feeless-portfolio-" + dateKey())() : ((Date.now() ^ (Math.random() * 1e9)) >>> 0);
+    const rng = makeRng(seed);
+    const prices = {}, lastClose = {}, holdings = {};
+    ASSETS.forEach(function (a) { prices[a.id] = a.start; lastClose[a.id] = a.start; holdings[a.id] = 0; });
+    run = {
+      mode: mode, day: 1, cash: startCashBase(), prices: prices, lastClose: lastClose, holdings: holdings,
+      history: [startCashBase()], rng: rng, undoStack: [], rewindsLeft: baseRewinds(), log: [], over: false
+    };
+    run.pendingEvent = rollEvent(rng);
+    addLog("Season begins. Day 1 of " + SEASON_LENGTH + ".");
+    $("pregame").hidden = true; $("ingame").hidden = false;
+    renderAll();
+  }
+
+  function snapshot() {
+    return {
+      day: run.day, cash: run.cash, prices: Object.assign({}, run.prices), lastClose: Object.assign({}, run.lastClose),
+      holdings: Object.assign({}, run.holdings), pendingEvent: run.pendingEvent, history: run.history.slice()
+    };
+  }
+  function restore(s) {
+    run.day = s.day; run.cash = s.cash; run.prices = s.prices; run.lastClose = s.lastClose;
+    run.holdings = s.holdings; run.pendingEvent = s.pendingEvent; run.history = s.history;
+  }
+
+  function buy(id, fracOfCash) {
+    if (!run || run.over) return;
+    const spend = run.cash * fracOfCash;
+    if (spend <= 0.009) return;
+    const qty = spend / run.prices[id];
+    run.cash -= spend; run.holdings[id] += qty;
+    renderAll();
+  }
+  function sell(id, fracOfHolding) {
+    if (!run || run.over) return;
+    const qty = run.holdings[id] * fracOfHolding;
+    if (qty <= 0) return;
+    const value = qty * run.prices[id];
+    run.holdings[id] -= qty; run.cash += value;
+    renderAll();
+  }
+
+  function advanceDay() {
+    if (!run || run.over) return;
+    run.undoStack.push(snapshot());
+    const pe = run.pendingEvent;
+    ASSETS.forEach(function (a) {
+      run.lastClose[a.id] = run.prices[a.id];
+      const n = randNormal(run.rng);
+      let change = a.drift + a.vol * n * steadyFactor();
+      let p = run.prices[a.id] * (1 + change);
+      if (pe.active && pe.assetId === a.id) p *= pe.mag;
+      run.prices[a.id] = Math.max(0.01, p);
+    });
+    if (pe.active) {
+      const asset = ASSETS.find(function (a) { return a.id === pe.assetId; });
+      const arrow = pe.ev.tone === "good" ? "📈" : "📉";
+      addLog(arrow + " <b>" + asset.tk + "</b> — " + pe.ev.label + " (" + (pe.mag >= 1 ? "+" : "") + Math.round((pe.mag - 1) * 100) + "%)");
+    }
+    run.day++;
+    run.history.push(totalValue(run));
+    if (run.day > SEASON_LENGTH) { endRun(); return; }
+    run.pendingEvent = rollEvent(run.rng);
+    renderAll();
+  }
+
+  function rewind() {
+    if (!run || run.over || run.rewindsLeft <= 0 || run.undoStack.length === 0) return;
+    restore(run.undoStack.pop());
+    run.rewindsLeft--;
+    addLog("↺ Rewound to day " + run.day + ".");
+    renderAll();
+  }
+
+  function endRun() {
+    run.over = true;
+    const final = totalValue(run);
+    const gain = Math.round(final - startCashBase());
+    const earned = Math.max(5, Math.round(gain / 50));
+    addInsight(earned);
+    if (run.mode === "daily") recordDailyResult(final);
+    $("end-title").textContent = gain >= 0 ? "Season closed, up!" : "Season closed, down";
+    $("end-text").textContent = "You finished day " + SEASON_LENGTH + " with a portfolio of " + fmtMoney(final) +
+      " — a " + (gain >= 0 ? "gain" : "loss") + " of " + fmtMoney(Math.abs(gain)) + " on your " + fmtMoney(startCashBase()) + " start.";
+    $("end-value").textContent = fmtMoney(final);
+    $("end-value").style.color = gain >= 0 ? "var(--good)" : "var(--bad)";
+    $("end-insight").textContent = "+" + earned.toLocaleString() + " insight";
+    $("end-overlay").hidden = false;
+  }
+  $("end-close").addEventListener("click", function () { $("end-overlay").hidden = true; $("ingame").hidden = true; $("pregame").hidden = false; renderDailyStatus(); });
+
+  function recordDailyResult(final) {
+    const today = dateKey(), last = lsGet("fp-daily-date", "");
+    if (last === today) return;
+    lsSet("fp-daily-date", today);
+    const yest = dateKey(new Date(Date.now() - 864e5));
+    const prevStreak = parseInt(lsGet("fp-streak", "0"), 10) || 0;
+    const prevDate = lsGet("fp-streak-date", "");
+    let streak = prevDate === yest ? prevStreak : 0;
+    streak++; lsSet("fp-streak", streak); lsSet("fp-streak-date", today);
+    lsSet("fp-daily-result", JSON.stringify({ final: Math.round(final) }));
+  }
+  function renderDailyStatus() {
+    const today = dateKey(), last = lsGet("fp-daily-date", "");
+    if (last === today) {
+      const res = jget("fp-daily-result", null);
+      $("daily-status").textContent = res ? ("Today's result: " + fmtMoney(res.final) + " · streak " + (parseInt(lsGet("fp-streak", "0"), 10) || 0)) : "";
+    } else { $("daily-status").textContent = ""; }
+  }
+
+  // ---------- rendering ----------
+  function renderAll() {
+    const total = totalValue(run), ret = ((total / startCashBase()) - 1) * 100;
+    $("hud-day").textContent = Math.min(run.day, SEASON_LENGTH) + "/" + SEASON_LENGTH;
+    $("hud-cash").textContent = fmtMoney(run.cash);
+    $("hud-total").textContent = fmtMoney(total);
+    $("hud-return").textContent = (ret >= 0 ? "+" : "") + ret.toFixed(1) + "%";
+    $("hud-return").className = ret >= 0 ? "up" : "down";
+    $("rewind-count").textContent = run.rewindsLeft;
+    $("rewind-btn").disabled = run.rewindsLeft <= 0 || run.undoStack.length === 0;
+    $("advance-btn").disabled = run.over;
+    renderAssets(); drawChart();
+  }
+
+  function renderAssets() {
+    const box = $("asset-list"); box.innerHTML = "";
+    const whaleOn = researchLevel("whale") >= 1;
+    ASSETS.forEach(function (a) {
+      const price = run.prices[a.id], prev = run.lastClose[a.id];
+      const chg = prev > 0 ? ((price / prev) - 1) * 100 : 0;
+      const held = run.holdings[a.id], heldVal = held * price;
+      const isWhaleTarget = whaleOn && run.pendingEvent.active && run.pendingEvent.assetId === a.id;
+      const row = document.createElement("div"); row.className = "asset-row";
+      row.innerHTML =
+        '<div class="main"><div class="tk">' + a.tk + (isWhaleTarget ? ' <span class="whale" title="News expected tomorrow">👀</span>' : '') + '</div><div class="nm">' + a.name + '</div></div>' +
+        '<div><div class="price">' + fmtMoney(price) + '</div><div class="chg ' + (chg >= 0 ? "up" : "down") + '">' + (chg >= 0 ? "+" : "") + chg.toFixed(1) + '%</div></div>' +
+        '<div class="held">Holding: ' + held.toFixed(held < 1 ? 4 : 2) + ' (' + fmtMoney(heldVal) + ')</div>' +
+        '<div class="trade-btns">' +
+          '<button class="buy" data-act="buy" data-frac="0.25">Buy 25%</button>' +
+          '<button class="buy" data-act="buy" data-frac="1">Buy Max</button>' +
+          '<button class="sell" data-act="sell" data-frac="0.5">Sell 50%</button>' +
+          '<button class="sell" data-act="sell" data-frac="1">Sell All</button>' +
+        '</div>';
+      row.querySelectorAll("button").forEach(function (b) {
+        b.addEventListener("click", function () {
+          const frac = parseFloat(b.dataset.frac);
+          if (b.dataset.act === "buy") buy(a.id, frac); else sell(a.id, frac);
+        });
+      });
+      box.appendChild(row);
+    });
+  }
+
+  function drawChart() {
+    const cv = $("chart"), ctx = cv.getContext("2d");
+    const w = cv.width, h = cv.height;
+    ctx.clearRect(0, 0, w, h);
+    const hist = run.history;
+    if (hist.length < 2) return;
+    const min = Math.min.apply(null, hist), max = Math.max.apply(null, hist);
+    const range = Math.max(1, max - min);
+    const base = startCashBase();
+    const baseY = h - ((base - min) / range) * (h - 16) - 8;
+    ctx.strokeStyle = "#24334f"; ctx.setLineDash([4, 4]); ctx.beginPath(); ctx.moveTo(0, baseY); ctx.lineTo(w, baseY); ctx.stroke(); ctx.setLineDash([]);
+    ctx.beginPath();
+    hist.forEach(function (v, i) {
+      const x = (i / (hist.length - 1)) * w;
+      const y = h - ((v - min) / range) * (h - 16) - 8;
+      if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+    });
+    ctx.strokeStyle = hist[hist.length - 1] >= base ? "#4ade80" : "#ff6b6b";
+    ctx.lineWidth = 2; ctx.stroke();
+  }
+
+  // ---------- interactions ----------
+  $("start-run").addEventListener("click", function () { startRun(currentMode === "daily" ? "daily" : "practice"); });
+  $("advance-btn").addEventListener("click", advanceDay);
+  $("rewind-btn").addEventListener("click", rewind);
+
+  let currentMode = "practice";
+  document.querySelectorAll(".modetab").forEach(function (t) {
+    t.addEventListener("click", function () {
+      const mode = t.getAttribute("data-mode");
+      document.querySelectorAll(".modetab").forEach(function (o) { o.classList.remove("active"); });
+      document.querySelectorAll(".modepanel").forEach(function (o) { o.classList.remove("active"); });
+      t.classList.add("active");
+      if (mode === "research") { $("panel-research").classList.add("active"); renderResearch(); }
+      else {
+        currentMode = mode; $("panel-game").classList.add("active");
+        $("pregame-text").textContent = mode === "daily"
+          ? "Daily Challenge: the same 30-day market for everyone today. One run per day, with a streak for playing."
+          : "Practice: a fresh random 30-day market every time, for honing your strategy and earning insight.";
+        renderDailyStatus();
+      }
+    });
+  });
+
+  // ---------- selftest hooks ----------
+  if (/[?&]selftest/.test(location.search)) {
+    window.__fp = {
+      startRun: startRun, buy: buy, sell: sell, advanceDay: advanceDay, rewind: rewind,
+      get run() { return run; }, get insight() { return insight; }, addInsight: addInsight,
+      totalValue: function () { return totalValue(run); }, researchLevel: researchLevel,
+      buyResearchMax: function (id) {
+        const r = RESEARCH.find(function (x) { return x.id === id; });
+        while (researchLevel(id) < r.max && insight >= researchCost(r, researchLevel(id))) { insight -= researchCost(r, researchLevel(id)); lsSet("fp-research-" + id, researchLevel(id) + 1); }
+        renderResearch();
+      },
+      setStreakYesterday: function (n) { lsSet("fp-streak", n); lsSet("fp-streak-date", dateKey(new Date(Date.now() - 864e5))); lsSet("fp-daily-date", ""); },
+      ASSETS: ASSETS, makeRng: makeRng
+    };
+  }
+
+  // ---------- tip card (reused pattern) ----------
+  let tipAmt = "0.01", qr = null, checking = false;
+  function toRaw(xno) { const parts = xno.split("."), frac = ((parts[1] || "") + "000000000000000000000000000000").slice(0, 30); return (BigInt(parts[0]) * 10n ** 30n + BigInt(frac)).toString(); }
+  function uriFor(a) { return "nano:" + NANO_ADDRESS + (a ? "?amount=" + toRaw(a) : ""); }
+  function setPending() { if (tipAmt) lsSet("fp-tip", JSON.stringify({ amt: tipAmt, ts: Date.now() })); }
+  function renderTip() {
+    $("addr").textContent = NANO_ADDRESS;
+    const uri = uriFor(tipAmt);
+    $("openw").href = uri; $("check").hidden = !tipAmt;
+    $("thint").textContent = tipAmt
+      ? "On a phone, tap Open in wallet. On a computer, scan the code with your Nano wallet. Then press the check button to credit " + Math.round(parseFloat(tipAmt) * INSIGHT_PER_XNO) + " insight."
+      : "Any amount is welcome. Tips sent this way can't be checked automatically, so insight isn't credited for them — pick a listed amount above if you'd like the top-up.";
+    try {
+      if (typeof QRCode === "undefined") throw new Error("no qr");
+      if (!qr) qr = new QRCode($("qr"), { text: uri, width: 132, height: 132, colorDark: "#000000", colorLight: "#ffffff", correctLevel: QRCode.CorrectLevel.M });
+      else { qr.clear(); qr.makeCode(uri); }
+    } catch (e) { $("qr").style.display = "none"; }
+  }
+  function pickAmount(btn) {
+    if (!btn) return;
+    document.querySelectorAll(".amounts button").forEach(function (o) { o.setAttribute("aria-pressed", "false"); });
+    btn.setAttribute("aria-pressed", "true");
+    tipAmt = btn.getAttribute("data-amt"); setPending(); renderTip(); $("tstatus").textContent = "";
+  }
+  document.querySelectorAll(".amounts button").forEach(function (b) { b.addEventListener("click", function () { pickAmount(b); }); });
+  $("openw").addEventListener("click", function () { setPending(); $("tstatus").textContent = "After you send, come back here and press the check button."; });
+  $("copy").addEventListener("click", function () {
+    setPending();
+    try { navigator.clipboard.writeText(NANO_ADDRESS).then(function () { $("tstatus").textContent = "Copied."; }, fallbackSelect); } catch (e) { fallbackSelect(); }
+    function fallbackSelect() {
+      const r = document.createRange(); r.selectNodeContents($("addr")); const s = window.getSelection(); s.removeAllRanges(); s.addRange(r);
+      $("tstatus").textContent = "Address selected. Press copy on your device.";
+    }
+  });
+  function rpc(body) {
+    let i = 0;
+    return new Promise(function (resolve, reject) {
+      (function next2() {
+        if (i >= RPCS.length) { reject(new Error("unreachable")); return; }
+        const url = RPCS[i++], ctl = new AbortController(), t = setTimeout(function () { ctl.abort(); }, 6000);
+        fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body), signal: ctl.signal })
+          .then(function (r) { return r.json(); }).then(function (j) { clearTimeout(t); resolve(j); }).catch(function () { clearTimeout(t); next2(); });
+      })();
+    });
+  }
+  async function findTip(min, since) {
+    const claimed = jget("fp-claimed", []), need = BigInt(toRaw(min));
+    let reachable = false;
+    try {
+      const h = await rpc({ action: "account_history", account: NANO_ADDRESS, count: "60" });
+      reachable = true;
+      if (h && Array.isArray(h.history)) {
+        for (const b of h.history) {
+          if (b.type !== "receive" || claimed.indexOf(b.hash) >= 0) continue;
+          const ts = +b.local_timestamp; if (ts > 0 && ts * 1000 < since - 120000) continue;
+          if (BigInt(b.amount) >= need) return { ok: true, hash: b.hash, amount: b.amount };
+        }
+      }
+    } catch (e) {}
+    for (const cmd of ["receivable", "pending"]) {
+      try {
+        const p = await rpc({ action: cmd, account: NANO_ADDRESS, count: "60", threshold: need.toString(), source: "true" });
+        reachable = true; if (p && p.error) continue;
+        const bl = p && p.blocks;
+        if (bl && typeof bl === "object") {
+          for (const hsh in bl) { if (claimed.indexOf(hsh) >= 0) continue; const v = bl[hsh], amt = typeof v === "object" ? v.amount : v; if (BigInt(amt) >= need) return { ok: true, hash: hsh, amount: amt }; }
+        }
+        break;
+      } catch (e) {}
+    }
+    return { ok: false, reachable: reachable };
+  }
+  function creditTip(hash, amountRaw) {
+    const claimed = jget("fp-claimed", []); claimed.push(hash); lsSet("fp-claimed", JSON.stringify(claimed.slice(-80)));
+    const xno = Number(BigInt(amountRaw)) / 1e30;
+    addInsight(Math.round(xno * INSIGHT_PER_XNO));
+    lsSet("fp-tip", "");
+    $("tstatus").textContent = "Thank you! Insight credited.";
+  }
+  async function runCheck(tries, silent) {
+    if (checking) return;
+    const pend = jget("fp-tip", null);
+    if (!pend || !pend.amt) { if (!silent) $("tstatus").textContent = "Pick an amount first."; return; }
+    checking = true; $("check").disabled = true;
+    if (!silent) $("tstatus").textContent = "Checking the Nano network…";
+    let res = { ok: false, reachable: false };
+    for (let i = 0; i < tries; i++) { res = await findTip(pend.amt, pend.ts); if (res.ok) break; if (i < tries - 1) await new Promise(function (r) { setTimeout(r, 4000); }); }
+    checking = false; $("check").disabled = false;
+    if (res.ok) creditTip(res.hash, res.amount);
+    else if (!silent) $("tstatus").textContent = res.reachable ? "Not seen yet. Transfers take a few seconds, so press the check button again in a moment." : "Couldn't reach the Nano network from here. Try again shortly.";
+  }
+  $("check").addEventListener("click", function () { runCheck(8, false); });
+  document.addEventListener("visibilitychange", function () { if (!document.hidden && jget("fp-tip", null)) runCheck(4, true); });
+
+  // ---------- go ----------
+  renderInsightTop(); renderResearch(); renderTip(); renderDailyStatus();
+})();
+</script>
+</body>
+</html>
